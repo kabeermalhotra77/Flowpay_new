@@ -42,19 +42,51 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
       console.log('Starting QR scan...');
       console.log('Profile bank ID:', profile.selectedBankId);
       
-      // For demo purposes, use mock data
-      // In production, uncomment the line below:
-      // const qrData = await QRScannerService.scanQRCode();
-      const qrData = QRScannerService.mockQRScan();
+      // Check camera permission first
+      const hasPermission = await QRScannerService.checkCameraPermission();
+      if (!hasPermission) {
+        console.log('Camera permission denied, using mock data');
+      }
+      
+      // Try real camera scan first
+      let qrData: any = null;
+      try {
+        qrData = await QRScannerService.scanQRCode();
+      } catch (error) {
+        console.log('Camera scan failed, showing options...');
+        
+        // Offer alternatives if camera fails
+        const useMock = confirm('Camera unavailable. Would you like to:\n- OK: Use demo payment\n- Cancel: Try again');
+        
+        if (useMock) {
+          qrData = QRScannerService.mockQRScan();
+        } else {
+          setIsScanning(false);
+          return;
+        }
+      }
       
       console.log('QR data received:', qrData);
       
       if (qrData) {
+        // If no amount was in QR, ask user
+        let finalAmount = qrData.amount;
+        if (!finalAmount || finalAmount === 0) {
+          const userAmount = prompt('Enter payment amount (₹):', '100');
+          if (userAmount && !isNaN(parseFloat(userAmount))) {
+            finalAmount = parseFloat(userAmount);
+          } else {
+            console.log('Invalid amount entered');
+            setIsScanning(false);
+            return;
+          }
+        }
+
         const paymentData: PaymentDetails = {
           id: `PAY_${Date.now()}`,
           vpa: qrData.vpa,
-          amount: qrData.amount || 0,
-          description: qrData.description,
+          amount: finalAmount,
+          description: qrData.description || qrData.merchantName || 'QR Payment',
           timestamp: Date.now(),
           status: 'pending',
           bankId: profile.selectedBankId
@@ -62,9 +94,13 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
         
         console.log('Starting payment with data:', paymentData);
         onStartPayment(paymentData);
+      } else {
+        console.log('No QR data received');
+        alert('No valid QR code detected. Please try again.');
       }
     } catch (error) {
       console.error('QR Scan failed:', error);
+      alert('QR scan failed. Please try again.');
     } finally {
       setIsScanning(false);
     }
