@@ -39,10 +39,15 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
     setIsScanning(true);
     
     try {
+      console.log('Starting QR scan...');
+      console.log('Profile bank ID:', profile.selectedBankId);
+      
       // For demo purposes, use mock data
       // In production, uncomment the line below:
       // const qrData = await QRScannerService.scanQRCode();
       const qrData = QRScannerService.mockQRScan();
+      
+      console.log('QR data received:', qrData);
       
       if (qrData) {
         const paymentData: PaymentDetails = {
@@ -55,6 +60,7 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
           bankId: profile.selectedBankId
         };
         
+        console.log('Starting payment with data:', paymentData);
         onStartPayment(paymentData);
       }
     } catch (error) {

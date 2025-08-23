@@ -28,27 +28,56 @@ export function ProcessingScreen({
   const [bank, setBank] = useState<BankDetails | null>(null);
 
   useEffect(() => {
-    const selectedBank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId);
-    setBank(selectedBank || null);
-    initiatePayment();
+    initializeProcessing();
   }, []);
+
+  const initializeProcessing = async () => {
+    // Find the selected bank
+    const selectedBank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId);
+    
+    if (!selectedBank) {
+      console.error('Bank not found for ID:', profile.selectedBankId);
+      console.log('Available banks:', SUPPORTED_BANKS.map(b => b.id));
+      
+      // Fallback to first bank if none found
+      const fallbackBank = SUPPORTED_BANKS[0];
+      setBank(fallbackBank);
+      console.log('Using fallback bank:', fallbackBank.name);
+    } else {
+      setBank(selectedBank);
+      console.log('Using selected bank:', selectedBank.name);
+    }
+    
+    // Small delay to ensure bank is set before payment initiation
+    setTimeout(() => {
+      initiatePayment();
+    }, 100);
+  };
 
   const initiatePayment = async () => {
     try {
+      // Wait for bank to be set if it's still null
+      let currentBank = bank;
+      if (!currentBank) {
+        // Find bank again as fallback
+        currentBank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId) || SUPPORTED_BANKS[0];
+        setBank(currentBank);
+      }
+
       const upiPin = profile.upiPin ? USSDService.decryptPin(profile.upiPin) : '';
       
-      if (!bank) {
-        throw new Error('Bank not found');
-      }
+      console.log('Initiating payment with bank:', currentBank.name);
+      console.log('Payment data:', paymentData);
 
       // Set up progress callback
       USSDService.setProgressCallback(handleUSSDProgress);
       
       // Start the payment process
-      const success = await USSDService.initiatePayment(paymentData, bank, upiPin);
+      const success = await USSDService.initiatePayment(paymentData, currentBank, upiPin);
       
       if (!success) {
         setStatus('failed');
+        setCurrentStep('Payment processing failed. Please try again.');
         await updatePaymentStatus('failed');
       }
     } catch (error) {
