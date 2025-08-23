@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QrCode, History, Settings, Scan, Wallet, ArrowUpRight } from 'lucide-react';
-import { PaymentDetails, UserProfile, BankDetails } from '@/types/payment';
+import { PaymentDetails, UserProfile, BankDetails, QRData } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 import { QRScannerService } from '@/services/qrScanner';
 import { SUPPORTED_BANKS } from '@/types/payment';
+import { AmountInputDialog } from './AmountInputDialog';
 
 interface MainScreenProps {
   profile: UserProfile;
@@ -18,6 +19,8 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
   const [recentPayments, setRecentPayments] = useState<PaymentDetails[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedBank, setSelectedBank] = useState<BankDetails | null>(null);
+  const [showAmountDialog, setShowAmountDialog] = useState(false);
+  const [scannedQRData, setScannedQRData] = useState<QRData | null>(null);
 
   useEffect(() => {
     loadData();
@@ -69,31 +72,9 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
       console.log('QR data received:', qrData);
       
       if (qrData) {
-        // If no amount was in QR, ask user
-        let finalAmount = qrData.amount;
-        if (!finalAmount || finalAmount === 0) {
-          const userAmount = prompt('Enter payment amount (₹):', '100');
-          if (userAmount && !isNaN(parseFloat(userAmount))) {
-            finalAmount = parseFloat(userAmount);
-          } else {
-            console.log('Invalid amount entered');
-            setIsScanning(false);
-            return;
-          }
-        }
-
-        const paymentData: PaymentDetails = {
-          id: `PAY_${Date.now()}`,
-          vpa: qrData.vpa,
-          amount: finalAmount,
-          description: qrData.description || qrData.merchantName || 'QR Payment',
-          timestamp: Date.now(),
-          status: 'pending',
-          bankId: profile.selectedBankId
-        };
-        
-        console.log('Starting payment with data:', paymentData);
-        onStartPayment(paymentData);
+        // Store QR data and show amount dialog
+        setScannedQRData(qrData);
+        setShowAmountDialog(true);
       } else {
         console.log('No QR data received');
         alert('No valid QR code detected. Please try again.');
@@ -104,6 +85,31 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const handleAmountConfirm = (amount: number) => {
+    if (scannedQRData) {
+      const paymentData: PaymentDetails = {
+        id: `PAY_${Date.now()}`,
+        vpa: scannedQRData.vpa,
+        amount: amount,
+        description: scannedQRData.description || scannedQRData.merchantName || 'QR Payment',
+        timestamp: Date.now(),
+        status: 'pending',
+        bankId: profile.selectedBankId
+      };
+      
+      console.log('Starting payment with data:', paymentData);
+      setShowAmountDialog(false);
+      setScannedQRData(null);
+      onStartPayment(paymentData);
+    }
+  };
+
+  const handleAmountCancel = () => {
+    setShowAmountDialog(false);
+    setScannedQRData(null);
+    setIsScanning(false);
   };
 
   const formatAmount = (amount: number): string => {
@@ -254,6 +260,14 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
             </CardContent>
           </Card>
         </div>
+
+        {/* Amount Input Dialog */}
+        <AmountInputDialog
+          isOpen={showAmountDialog}
+          qrData={scannedQRData}
+          onConfirm={handleAmountConfirm}
+          onCancel={handleAmountCancel}
+        />
       </div>
     </div>
   );
