@@ -3,10 +3,11 @@ import { SetupScreen } from './SetupScreen';
 import { MainScreen } from './MainScreen';
 import { ProcessingScreen } from './ProcessingScreen';
 import { PermissionOnboardingScreen } from './PermissionOnboardingScreen';
+import { SettingsScreen } from './SettingsScreen';
 import { UserProfile, PaymentDetails } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 
-type AppScreen = 'permissions' | 'setup' | 'main' | 'processing';
+type AppScreen = 'permissions' | 'setup' | 'main' | 'processing' | 'settings';
 
 export function FlowPayApp() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('permissions');
@@ -50,8 +51,16 @@ export function FlowPayApp() {
   };
 
   const handleShowSettings = () => {
-    // For now, just reset to setup
-    setCurrentScreen('setup');
+    setCurrentScreen('settings');
+  };
+
+  const handleBackFromSettings = () => {
+    setCurrentScreen('main');
+  };
+
+  const handleResetApp = () => {
+    setUserProfile(null);
+    setCurrentScreen('permissions');
   };
 
   const handleBackToMain = () => {
@@ -102,6 +111,15 @@ export function FlowPayApp() {
         />
       ) : (
         <SetupScreen onSetupComplete={handleSetupComplete} />
+      );
+
+    case 'settings':
+      return (
+        <SettingsScreen
+          profile={userProfile}
+          onBack={handleBackFromSettings}
+          onResetApp={handleResetApp}
+        />
       );
     
     default:
