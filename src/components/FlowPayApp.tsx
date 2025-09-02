@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { SetupScreen } from './SetupScreen';
 import { MainScreen } from './MainScreen';
 import { ProcessingScreen } from './ProcessingScreen';
+import { PermissionOnboardingScreen } from './PermissionOnboardingScreen';
 import { UserProfile, PaymentDetails } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 
-type AppScreen = 'setup' | 'main' | 'processing';
+type AppScreen = 'permissions' | 'setup' | 'main' | 'processing';
 
 export function FlowPayApp() {
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>('setup');
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>('permissions');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [currentPayment, setCurrentPayment] = useState<PaymentDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +33,10 @@ export function FlowPayApp() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePermissionsComplete = () => {
+    setCurrentScreen('setup');
   };
 
   const handleSetupComplete = (profile: UserProfile) => {
@@ -75,6 +80,9 @@ export function FlowPayApp() {
   }
 
   switch (currentScreen) {
+    case 'permissions':
+      return <PermissionOnboardingScreen onComplete={handlePermissionsComplete} />;
+    
     case 'setup':
       return <SetupScreen onSetupComplete={handleSetupComplete} />;
     
