@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FlowPay</string>
+    <string name="title_activity_main">FlowPay</string>
+    <string name="package_name">com.flowpay.upi.offline</string>
+    <string name="custom_url_scheme">com.flowpay.upi.offline</string>
+    
+    <!-- Accessibility Service Description -->
+    <string name="accessibility_service_description">
+        FlowPay accessibility service helps automate USSD menu navigation for UPI payments. 
+        This service can read and interact with USSD dialogs to complete payment transactions automatically.
+        No personal data is collected or stored.
+    </string>
+    
+    <!-- Permissions -->
+    <string name="camera_permission_description">Camera permission is required to scan QR codes for payments</string>
+    <string name="phone_permission_description">Phone permission is required to dial USSD codes for UPI payments</string>
+    <string name="accessibility_permission_description">Accessibility service is required to automate USSD menu navigation</string>
+</resources>

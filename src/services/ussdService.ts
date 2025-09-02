@@ -1,6 +1,8 @@
 import { Device } from '@capacitor/device';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { PaymentDetails, BankDetails, USSDResponse } from '../types/payment';
+import { FLAGS } from '../constants/flags';
+import { NativeUSSDService } from './nativeUSSDService';
 
 export class USSDService {
   private static currentStep = 0;
@@ -13,6 +15,12 @@ export class USSDService {
     upiPin: string
   ): Promise<boolean> {
     try {
+      // Use native service if available and not in simulation mode
+      if (!FLAGS.USSD_SIMULATED) {
+        return await NativeUSSDService.initiatePayment(payment, bank, upiPin);
+      }
+
+      // Fallback to simulation
       this.paymentData = payment;
       this.selectedBank = bank;
       this.currentStep = 0;

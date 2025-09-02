@@ -6,7 +6,7 @@ import { QrCode, History, Settings, Scan, Wallet, ArrowUpRight } from 'lucide-re
 import { PaymentDetails, UserProfile, BankDetails, QRData } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 import { QRScannerService } from '@/services/qrScanner';
-import { SUPPORTED_BANKS } from '@/types/payment';
+import { BANKS } from '@/constants/banks';
 import { AmountInputDialog } from './AmountInputDialog';
 
 interface MainScreenProps {
@@ -31,7 +31,7 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
       const payments = await StorageService.getPaymentHistory();
       setRecentPayments(payments.slice(0, 5)); // Show only recent 5
       
-      const bank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId);
+      const bank = BANKS.find(b => b.id === profile.selectedBankId);
       setSelectedBank(bank || null);
     } catch (error) {
       console.error('Failed to load data:', error);

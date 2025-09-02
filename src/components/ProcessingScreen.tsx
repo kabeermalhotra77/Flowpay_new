@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, Loader2, ArrowLeft, Receipt } from 'lucide-react'
 import { PaymentDetails, UserProfile, BankDetails, USSDResponse } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 import { USSDService } from '@/services/ussdService';
-import { SUPPORTED_BANKS } from '@/types/payment';
+import { BANKS } from '@/constants/banks';
 
 interface ProcessingScreenProps {
   paymentData: PaymentDetails;
@@ -33,14 +33,14 @@ export function ProcessingScreen({
 
   const initializeProcessing = async () => {
     // Find the selected bank
-    const selectedBank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId);
+    const selectedBank = BANKS.find(b => b.id === profile.selectedBankId);
     
     if (!selectedBank) {
       console.error('Bank not found for ID:', profile.selectedBankId);
-      console.log('Available banks:', SUPPORTED_BANKS.map(b => b.id));
+      console.log('Available banks:', BANKS.map(b => b.id));
       
       // Fallback to first bank if none found
-      const fallbackBank = SUPPORTED_BANKS[0];
+      const fallbackBank = BANKS[0];
       setBank(fallbackBank);
       console.log('Using fallback bank:', fallbackBank.name);
     } else {
@@ -60,7 +60,7 @@ export function ProcessingScreen({
       let currentBank = bank;
       if (!currentBank) {
         // Find bank again as fallback
-        currentBank = SUPPORTED_BANKS.find(b => b.id === profile.selectedBankId) || SUPPORTED_BANKS[0];
+        currentBank = BANKS.find(b => b.id === profile.selectedBankId) || BANKS[0];
         setBank(currentBank);
       }
 

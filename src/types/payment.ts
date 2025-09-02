@@ -37,11 +37,4 @@ export interface USSDResponse {
   data?: any;
 }
 
-export const SUPPORTED_BANKS: BankDetails[] = [
-  { id: 'sbi', name: 'State Bank of India', ussdCode: '*99*41#', upiId: '@sbi' },
-  { id: 'hdfc', name: 'HDFC Bank', ussdCode: '*99*42#', upiId: '@hdfcbank' },
-  { id: 'icici', name: 'ICICI Bank', ussdCode: '*99*43#', upiId: '@icici' },
-  { id: 'axis', name: 'Axis Bank', ussdCode: '*99*44#', upiId: '@axisbank' },
-  { id: 'pnb', name: 'Punjab National Bank', ussdCode: '*99*45#', upiId: '@pnb' },
-  { id: 'bob', name: 'Bank of Baroda', ussdCode: '*99*46#', upiId: '@bob' },
-];
+// SUPPORTED_BANKS moved to src/constants/banks.ts

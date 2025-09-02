@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smartphone, CreditCard, Shield } from 'lucide-react';
-import { SUPPORTED_BANKS } from '@/types/payment';
+import { BANKS } from '@/constants/banks';
 import { StorageService } from '@/services/storage';
 import { UserProfile } from '@/types/payment';
 import { USSDService } from '@/services/ussdService';
@@ -158,7 +158,7 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
                     <SelectValue placeholder="Choose your bank" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SUPPORTED_BANKS.map((bank) => (
+                    {BANKS.map((bank) => (
                       <SelectItem key={bank.id} value={bank.id}>
                         {bank.name}
                       </SelectItem>
