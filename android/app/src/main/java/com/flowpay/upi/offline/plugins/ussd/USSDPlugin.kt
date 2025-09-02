@@ -1,41 +1,60 @@
 package com.flowpay.upi.offline.plugins.ussd
 
-import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.telecom.TelecomManager
-import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import android.telephony.SubscriptionManager
+import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
-import org.json.JSONArray
-import org.json.JSONObject
 
 @CapacitorPlugin(
     name = "USSDPlugin",
     permissions = [
-        Permission(
-            strings = [Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE],
-            alias = "phone"
-        )
+        Permission(strings = [Manifest.permission.CALL_PHONE], alias = "phone"),
+        Permission(strings = [Manifest.permission.READ_PHONE_STATE], alias = "phoneState")
     ]
 )
 class USSDPlugin : Plugin() {
 
     @PluginMethod
-    fun dialUSSD(call: PluginCall) {
-        if (!hasPhonePermission()) {
-            requestPermissionForAlias("phone", call, "phonePermissionCallback")
-            return
-        }
+    fun isUSSDSupported(call: PluginCall) {
+        val hasPhonePermission = hasPermission(Manifest.permission.CALL_PHONE)
+        val hasPhoneStatePermission = hasPermission(Manifest.permission.READ_PHONE_STATE)
+        
+        call.resolve(mapOf(
+            "supported" to (hasPhonePermission && hasPhoneStatePermission),
+            "hasPhonePermission" to hasPhonePermission,
+            "hasPhoneStatePermission" to hasPhoneStatePermission
+        ))
+    }
 
-        val ussdCode = call.getString("ussdCode")
+    @PluginMethod
+    fun requestPermissions(call: PluginCall) {
+        if (hasAllPermissions()) {
+            call.resolve(mapOf("granted" to true))
+        } else {
+            requestPermissionForAlias("phone", call, "permissionCallback")
+        }
+    }
+
+    @PermissionCallback
+    private fun permissionCallback(call: PluginCall) {
+        val granted = hasAllPermissions()
+        call.resolve(mapOf("granted" to granted))
+    }
+
+    @PluginMethod
+    fun dialUSSD(call: PluginCall) {
+        val ussdCode = call.getString("code")
         val simSlot = call.getInt("simSlot", 0)
 
         if (ussdCode == null) {
@@ -43,22 +62,24 @@ class USSDPlugin : Plugin() {
             return
         }
 
+        if (!hasPermission(Manifest.permission.CALL_PHONE)) {
+            call.reject("Phone permission not granted")
+            return
+        }
+
         try {
-            val encodedCode = Uri.encode(ussdCode)
             val intent = Intent(Intent.ACTION_CALL).apply {
-                data = Uri.parse("tel:$encodedCode")
-                if (simSlot != null && simSlot > 0) {
-                    // Handle dual SIM if needed
+                data = Uri.parse("tel:${Uri.encode(ussdCode)}")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && simSlot >= 0) {
                     putExtra("com.android.phone.extra.slot", simSlot)
                 }
             }
-
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-                call.resolve()
-            } else {
-                call.reject("No app can handle USSD dialing")
-            }
+            
+            activity.startActivity(intent)
+            call.resolve(mapOf(
+                "success" to true,
+                "message" to "USSD dialed successfully"
+            ))
         } catch (e: Exception) {
             call.reject("Failed to dial USSD: ${e.message}")
         }
@@ -66,88 +87,74 @@ class USSDPlugin : Plugin() {
 
     @PluginMethod
     fun getDualSimInfo(call: PluginCall) {
-        if (!hasPhonePermission()) {
-            requestPermissionForAlias("phone", call, "phonePermissionCallback")
+        if (!hasPermission(Manifest.permission.READ_PHONE_STATE)) {
+            call.reject("Phone state permission not granted")
             return
         }
 
         try {
             val subscriptionManager = context.getSystemService(SubscriptionManager::class.java)
             val telephonyManager = context.getSystemService(TelephonyManager::class.java)
-            
-            val simInfo = JSONArray()
-            
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                val subscriptions = subscriptionManager?.activeSubscriptionInfoList
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                val subscriptions = subscriptionManager?.activeSubscriptionInfoList ?: emptyList()
                 
-                subscriptions?.forEachIndexed { index, subInfo ->
-                    val simData = JSONObject().apply {
-                        put("slotIndex", subInfo.simSlotIndex)
-                        put("carrierName", subInfo.carrierName.toString())
-                        put("displayName", subInfo.displayName.toString())
-                        put("subscriptionId", subInfo.subscriptionId)
-                        put("isDefault", subInfo.simSlotIndex == 0)
-                    }
-                    simInfo.put(simData)
+                val simInfo = subscriptions.mapIndexed { index, subscription ->
+                    mapOf(
+                        "slotIndex" to subscription.simSlotIndex,
+                        "displayName" to subscription.displayName.toString(),
+                        "carrierName" to subscription.carrierName.toString(),
+                        "countryIso" to subscription.countryIso,
+                        "isDefault" to (index == 0)
+                    )
                 }
-            }
 
-            val result = JSONObject().apply {
-                put("isDualSim", simInfo.length() > 1)
-                put("simCount", simInfo.length())
-                put("simInfo", simInfo)
+                call.resolve(mapOf(
+                    "hasDualSim" to (subscriptions.size > 1),
+                    "simCount" to subscriptions.size,
+                    "simInfo" to simInfo
+                ))
+            } else {
+                call.resolve(mapOf(
+                    "hasDualSim" to false,
+                    "simCount" to 1,
+                    "simInfo" to emptyList<Map<String, Any>>()
+                ))
             }
-
-            call.resolve(result)
         } catch (e: Exception) {
             call.reject("Failed to get SIM info: ${e.message}")
         }
     }
 
     @PluginMethod
-    fun selectSIM(call: PluginCall) {
-        val simSlot = call.getInt("simSlot")
-        if (simSlot == null) {
-            call.reject("SIM slot is required")
+    fun initiatePayment(call: PluginCall) {
+        val amount = call.getString("amount")
+        val vpa = call.getString("vpa")
+        val pin = call.getString("pin")
+        val simSlot = call.getInt("simSlot", 0)
+
+        if (amount == null || vpa == null || pin == null) {
+            call.reject("Amount, VPA, and PIN are required")
             return
         }
 
-        // Store selected SIM preference
-        val prefs = context.getSharedPreferences("flowpay_prefs", 0)
-        prefs.edit().putInt("selected_sim_slot", simSlot).apply()
-
-        call.resolve()
-    }
-
-    @PluginMethod
-    fun isUSSDSupported(call: PluginCall) {
-        val telephonyManager = context.getSystemService(TelephonyManager::class.java)
-        val isSupported = telephonyManager?.phoneType != TelephonyManager.PHONE_TYPE_NONE
+        // For now, simulate the payment process
+        // In production, this would integrate with actual USSD automation
+        val transactionRef = "UPI${System.currentTimeMillis()}${(1000..9999).random()}"
         
-        val result = JSONObject().apply {
-            put("supported", isSupported)
-            put("phoneType", telephonyManager?.phoneType ?: 0)
-        }
-        
-        call.resolve(result)
+        call.resolve(mapOf(
+            "success" to true,
+            "transactionRef" to transactionRef,
+            "message" to "Payment initiated successfully"
+        ))
     }
 
-    @PermissionCallback
-    private fun phonePermissionCallback(call: PluginCall) {
-        if (hasPhonePermission()) {
-            // Retry the original call
-            when (call.methodName) {
-                "dialUSSD" -> dialUSSD(call)
-                "getDualSimInfo" -> getDualSimInfo(call)
-                else -> call.resolve()
-            }
-        } else {
-            call.reject("Phone permission denied")
-        }
+    private fun hasAllPermissions(): Boolean {
+        return hasPermission(Manifest.permission.CALL_PHONE) && 
+               hasPermission(Manifest.permission.READ_PHONE_STATE)
     }
 
-    private fun hasPhonePermission(): Boolean {
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED &&
-               ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+    private fun hasPermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 }

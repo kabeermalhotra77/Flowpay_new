@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 
 // Native plugin interfaces for permissions
 interface USSDPlugin {
-  isUSSDSupported(): Promise<{ supported: boolean }>;
+  isUSSDSupported(): Promise<{ supported: boolean; hasPhonePermission: boolean; hasPhoneStatePermission: boolean }>;
+  requestPermissions(): Promise<{ granted: boolean }>;
 }
 
 interface AccessibilityPlugin {
@@ -75,13 +76,13 @@ export class PermissionService {
 
   static async checkPhonePermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      return false; // Web can't make phone calls
+      return true; // Allow simulation on web
     }
 
     try {
       if (USSDPlugin) {
         const result = await USSDPlugin.isUSSDSupported();
-        return result.supported;
+        return result.supported && result.hasPhonePermission && result.hasPhoneStatePermission;
       }
       return false;
     } catch (error) {
@@ -92,19 +93,31 @@ export class PermissionService {
 
   static async requestPhonePermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      toast.error('Phone calls are not supported on web platform');
-      return false;
+      toast.info('Using simulation mode on web platform');
+      return true; // Allow simulation on web
     }
 
-    // Phone permission is requested automatically when trying to dial USSD
-    // The actual permission request happens in the native USSD plugin
-    toast.info('Phone permission will be requested when making payments');
-    return true;
+    try {
+      if (USSDPlugin) {
+        const result = await USSDPlugin.requestPermissions();
+        if (result.granted) {
+          toast.success('Phone permissions granted');
+        } else {
+          toast.error('Phone permissions denied');
+        }
+        return result.granted;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error requesting phone permission:', error);
+      toast.error('Failed to request phone permission');
+      return false;
+    }
   }
 
   static async checkAccessibilityPermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      return false; // Web doesn't have accessibility services
+      return true; // Not needed for web simulation
     }
 
     try {
@@ -121,8 +134,8 @@ export class PermissionService {
 
   static async requestAccessibilityPermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      toast.error('Accessibility services are not supported on web platform');
-      return false;
+      toast.info('Accessibility not needed for web simulation');
+      return true; // Not needed for web simulation
     }
 
     try {
