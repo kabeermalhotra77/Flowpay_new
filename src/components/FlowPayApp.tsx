@@ -20,16 +20,11 @@ export function FlowPayApp() {
 
   const initializeApp = async () => {
     try {
-      const profile = await StorageService.getUserProfile();
-      if (profile && profile.isSetupComplete) {
-        setUserProfile(profile);
-        setCurrentScreen('main');
-      } else {
-        setCurrentScreen('setup');
-      }
+      // Start with permissions screen for new flow
+      setCurrentScreen('permissions');
     } catch (error) {
       console.error('Failed to initialize app:', error);
-      setCurrentScreen('setup');
+      setCurrentScreen('permissions');
     } finally {
       setIsLoading(false);
     }
