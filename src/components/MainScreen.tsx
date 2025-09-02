@@ -150,8 +150,11 @@ export function MainScreen({ profile, onStartPayment, onShowSettings }: MainScre
             <Button
               variant="secondary"
               size="icon"
-              onClick={onShowSettings}
-              className="bg-white/20 hover:bg-white/30"
+              onClick={() => {
+                console.log('Settings button clicked'); // Debug log
+                onShowSettings();
+              }}
+              className="bg-white/20 hover:bg-white/30 border-0"
             >
               <Settings className="w-5 h-5" />
             </Button>
