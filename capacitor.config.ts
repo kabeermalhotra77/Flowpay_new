@@ -16,8 +16,7 @@ const config: CapacitorConfig = {
       group: 'FlowPayApp'
     },
     USSDPlugin: {},
-    SecureUi: {},
-    AccessibilityPlugin: {}
+    SecureUi: {}
   }
 };
 

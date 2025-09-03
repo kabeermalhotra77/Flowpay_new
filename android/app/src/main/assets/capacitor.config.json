@@ -1,0 +1,21 @@
+{
+	"appId": "com.flowpay.upi.offline",
+	"appName": "FlowPay",
+	"webDir": "dist",
+	"server": {
+		"url": "https://30d76b92-93f2-4617-b900-2d4791287e0c.lovableproject.com?forceHideBadge=true",
+		"cleartext": true
+	},
+	"plugins": {
+		"Camera": {
+			"permissions": [
+				"camera"
+			]
+		},
+		"Preferences": {
+			"group": "FlowPayApp"
+		},
+		"USSDPlugin": {},
+		"SecureUi": {}
+	}
+}

@@ -24,12 +24,12 @@ pass "Manifest permissions/provider/exported ok."
 # ----- 3) R8/ProGuard -----
 grep -q 'assumenosideeffects class android.util.Log' android/app/proguard-rules.pro || fail "Log strip rule missing"
 grep -q 'com.getcapacitor' android/app/proguard-rules.pro || fail "Capacitor keep rule missing"
-grep -q 'com.example.app.plugins' android/app/proguard-rules.pro || fail "App plugin keep rule missing"
+grep -q 'com.flowpay.upi.offline.plugins' android/app/proguard-rules.pro || fail "App plugin keep rule missing"
 pass "R8 rules present (keeps + log strip)."
 
 # ----- 4) FLAG_SECURE plugin -----
-[ -f android/app/src/main/java/com/example/app/plugins/secureui/SecureUiPlugin.kt ] || fail "SecureUiPlugin.kt missing"
-grep -q '@CapacitorPlugin(name = "SecureUi")' android/app/src/main/java/com/example/app/plugins/secureui/SecureUiPlugin.kt || fail "SecureUi annotation missing"
+[ -f android/app/src/main/java/com/flowpay/upi/offline/plugins/secureui/SecureUiPlugin.kt ] || fail "SecureUiPlugin.kt missing"
+grep -q '@CapacitorPlugin(name = "SecureUi")' android/app/src/main/java/com/flowpay/upi/offline/plugins/secureui/SecureUiPlugin.kt || fail "SecureUi annotation missing"
 pass "SecureUi plugin present."
 
 # ----- 5) Constants & flags -----
@@ -42,7 +42,7 @@ pass "Env & constants ok."
 
 # ----- 6) Optional: device checks (non-fatal) -----
 if command -v adb >/dev/null 2>&1 && adb devices | grep -qE '\tdevice$'; then
-  PKG="com.example.app"
+  PKG="com.flowpay.upi.offline"
   adb shell pm list packages | grep -q "$PKG" && pass "Device: $PKG installed." || echo "NOTE: $PKG not installed."
   adb shell dumpsys package $PKG | grep -q 'android.permission.CALL_PHONE' && pass "CALL_PHONE present on device." || echo "NOTE: CALL_PHONE not found on device."
   adb shell dumpsys package $PKG | grep -q 'android.permission.CAMERA' && pass "CAMERA present on device." || echo "NOTE: CAMERA not found on device."

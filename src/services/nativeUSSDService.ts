@@ -85,15 +85,7 @@ export class NativeUSSDService {
         }
       }
 
-      // Check accessibility service
-      if (AccessibilityPlugin) {
-        const { enabled } = await AccessibilityPlugin.isAccessibilityServiceEnabled();
-        if (!enabled) {
-          this.notifyProgress(1, 'Please enable accessibility service for automated USSD');
-          await AccessibilityPlugin.requestAccessibilityPermission();
-          throw new Error('Accessibility service required');
-        }
-      }
+      // Removed AccessibilityPlugin - not used in current implementation
 
       // Get SIM info for dual SIM handling
       let simSlot = 0;
@@ -115,7 +107,7 @@ export class NativeUSSDService {
         });
       }
 
-      // Wait for accessibility service to handle automation
+      // Wait for USSD automation (using alternative method)
       await this.waitForUSSDAutomation(payment, pin);
 
     } catch (error) {
@@ -133,7 +125,7 @@ export class NativeUSSDService {
       let step = 1;
       const maxSteps = 10;
       
-      // Listen for accessibility service responses
+      // Listen for USSD responses
       const handleUSSDResponse = (event: any) => {
         const message = event.detail || event.message;
         step++;
@@ -169,7 +161,7 @@ export class NativeUSSDService {
         }
       };
 
-      // Set up event listener (implementation depends on how accessibility service communicates)
+      // Set up event listener for USSD responses
       document.addEventListener('ussd-response', handleUSSDResponse);
 
       // Timeout after 60 seconds
@@ -381,13 +373,7 @@ export class NativeUSSDService {
     return false; // Web/simulation mode
   }
 
-  static async isAccessibilityEnabled(): Promise<boolean> {
-    if (AccessibilityPlugin && Capacitor.isNativePlatform()) {
-      const { enabled } = await AccessibilityPlugin.isAccessibilityServiceEnabled();
-      return enabled;
-    }
-    return false;
-  }
+  // Removed AccessibilityPlugin methods - not used in current implementation
 
   // Legacy methods for compatibility
   static encryptPin(pin: string): string {

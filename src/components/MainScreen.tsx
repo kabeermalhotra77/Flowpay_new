@@ -142,7 +142,12 @@ export function MainScreen({ profile, onStartPayment, onShowSettings, currentPay
       }
     };
 
-    document.addEventListener('paymentSMSReceived', handlePaymentSMS);
+    // Listen for both native and web events
+    if (window.Capacitor) {
+      window.Capacitor.addListener('paymentSMSReceived', handlePaymentSMS);
+    } else {
+      document.addEventListener('paymentSMSReceived', handlePaymentSMS);
+    }
     
     // Set up payment callback
     SimpleUSSDService.setPaymentCallback(handlePaymentResult);
