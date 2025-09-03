@@ -127,25 +127,21 @@ class USSDPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun initiatePayment(call: PluginCall) {
-        val amount = call.getString("amount")
+    fun constructUSSDCode(call: PluginCall) {
         val vpa = call.getString("vpa")
-        val pin = call.getString("pin")
-        val simSlot = call.getInt("simSlot", 0)
+        val amount = call.getString("amount")
 
-        if (amount == null || vpa == null || pin == null) {
-            call.reject("Amount, VPA, and PIN are required")
+        if (vpa == null || amount == null) {
+            call.reject("VPA and amount are required")
             return
         }
 
-        // For now, simulate the payment process
-        // In production, this would integrate with actual USSD automation
-        val transactionRef = "UPI${System.currentTimeMillis()}${(1000..9999).random()}"
+        // Standard UPI USSD format: *99*1*3*<VPA>*<AMT>*1#
+        val ussdCode = "*99*1*3*${vpa}*${amount}*1#"
         
         call.resolve(mapOf(
-            "success" to true,
-            "transactionRef" to transactionRef,
-            "message" to "Payment initiated successfully"
+            "ussdCode" to ussdCode,
+            "message" to "USSD code constructed successfully"
         ))
     }
 

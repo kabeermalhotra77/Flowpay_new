@@ -10,6 +10,6 @@ class MainActivity : BridgeActivity() {
         // Register custom plugins
         registerPlugin(com.flowpay.upi.offline.plugins.ussd.USSDPlugin::class.java)
         registerPlugin(com.flowpay.upi.offline.plugins.secureui.SecureUiPlugin::class.java)
-        registerPlugin(com.flowpay.upi.offline.plugins.accessibility.AccessibilityPlugin::class.java)
+        registerPlugin(com.flowpay.upi.offline.plugins.sms.SMSPlugin::class.java)
     }
 }

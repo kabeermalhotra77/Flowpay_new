@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Phone, Settings, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Camera, Phone, CheckCircle, AlertCircle, Smartphone, Loader2 } from 'lucide-react';
 import { PermissionService, PermissionStatus } from '@/services/permissionService';
 import { toast } from 'sonner';
 
@@ -21,8 +22,7 @@ interface PermissionItem {
 export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingScreenProps) {
   const [permissions, setPermissions] = useState<PermissionStatus>({
     camera: false,
-    phone: false,
-    accessibility: false
+    phone: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [currentPermission, setCurrentPermission] = useState<string | null>(null);
@@ -31,23 +31,16 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
     {
       key: 'camera',
       title: 'Camera Access',
-      description: 'Scan QR codes for quick payments',
+      description: 'Scan QR codes to extract payment details',
       icon: <Camera className="w-6 h-6" />,
       required: true
     },
     {
       key: 'phone',
-      title: 'Phone Access',
-      description: 'Make USSD calls for offline payments',
+      title: 'Phone & SMS Access',
+      description: 'Make USSD calls and receive payment confirmations via SMS',
       icon: <Phone className="w-6 h-6" />,
       required: true
-    },
-    {
-      key: 'accessibility',
-      title: 'Accessibility Service',
-      description: 'Automate USSD navigation for seamless payments',
-      icon: <Settings className="w-6 h-6" />,
-      required: false
     }
   ];
 
@@ -78,9 +71,6 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
           break;
         case 'phone':
           granted = await PermissionService.requestPhonePermission();
-          break;
-        case 'accessibility':
-          granted = await PermissionService.requestAccessibilityPermission();
           break;
       }
 
@@ -131,6 +121,28 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
     return { icon: <AlertCircle className="w-4 h-4" />, variant: 'secondary' as const, text: 'Required' };
   };
 
+  // Progress indicator for permissions
+  const PermissionProgressIndicator = () => {
+    const requiredPermissions = ['camera', 'phone'];
+    const grantedRequired = requiredPermissions.filter(key => permissions[key as keyof PermissionStatus]).length;
+    const totalRequired = requiredPermissions.length;
+    const progress = (grantedRequired / totalRequired) * 100;
+
+    return (
+      <div className="space-y-2 mb-6">
+        <div className="flex justify-between text-sm">
+          <span>Required Permissions</span>
+          <span>{grantedRequired}/{totalRequired}</span>
+        </div>
+        <Progress value={progress} className="w-full" />
+        <p className="text-xs text-muted-foreground text-center">
+          {progress === 100 ? 'All required permissions granted!' : 
+           `${totalRequired - grantedRequired} more required`}
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="mobile-container">
       <div className="flex flex-col min-h-screen p-6">
@@ -147,49 +159,68 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
           </p>
         </div>
 
+        {/* Progress Indicator */}
+        <PermissionProgressIndicator />
+
         {/* Permission Cards */}
         <div className="space-y-4 flex-1">
           {permissionItems.map((item) => {
             const status = getPermissionStatus(item.key);
             const isProcessing = currentPermission === item.key && isLoading;
+            const isGranted = permissions[item.key];
 
             return (
-              <Card key={item.key} className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card key={item.key} className={`transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm ${
+                isGranted ? 'ring-2 ring-green-500/20 bg-green-50/50' : 
+                isProcessing ? 'ring-2 ring-blue-500/20 bg-blue-50/50' : ''
+              }`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        {item.icon}
+                      <div className={`p-2 rounded-lg ${
+                        isGranted ? 'bg-green-100 text-green-600' :
+                        isProcessing ? 'bg-blue-100 text-blue-600' :
+                        'bg-primary/10 text-primary'
+                      }`}>
+                        {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : item.icon}
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{item.title}</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {item.title}
+                          {item.required && <Badge variant="destructive" className="text-xs">Required</Badge>}
+                        </CardTitle>
                         <CardDescription className="text-sm">
                           {item.description}
                         </CardDescription>
                       </div>
                     </div>
-                    <Badge variant={status.variant} className="flex items-center gap-1">
-                      {status.icon}
-                      {status.text}
-                    </Badge>
+                    <div className={`flex items-center gap-1 ${
+                      isGranted ? 'text-green-500' :
+                      isProcessing ? 'text-blue-500' :
+                      'text-gray-500'
+                    }`}>
+                      {isGranted ? <CheckCircle className="w-5 h-5" /> : 
+                       isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> :
+                       <AlertCircle className="w-5 h-5" />}
+                      <span className="text-sm font-medium">
+                        {isGranted ? 'Granted' : isProcessing ? 'Processing...' : 'Required'}
+                      </span>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <Button
-                    onClick={() => requestPermission(item.key)}
-                    disabled={permissions[item.key] || isProcessing}
-                    loading={isProcessing}
-                    variant={permissions[item.key] ? "secondary" : "default"}
-                    className="w-full"
-                  >
-                    {permissions[item.key] 
-                      ? 'Permission Granted' 
-                      : isProcessing 
-                        ? 'Requesting...' 
-                        : `Grant ${item.title}`
-                    }
-                  </Button>
-                </CardContent>
+                {!isGranted && (
+                  <CardContent className="pt-0">
+                    <Button
+                      onClick={() => requestPermission(item.key)}
+                      disabled={isProcessing}
+                      loading={isProcessing}
+                      variant={item.required ? "default" : "outline"}
+                      className="w-full"
+                    >
+                      {isProcessing ? 'Requesting...' : `Grant ${item.title}`}
+                    </Button>
+                  </CardContent>
+                )}
               </Card>
             );
           })}
@@ -221,8 +252,8 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
         {/* Info */}
         <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border/50">
           <p className="text-sm text-muted-foreground text-center">
-            <strong>Camera</strong> and <strong>Phone</strong> permissions are required. 
-            <strong> Accessibility</strong> is optional but recommended for automated payments.
+            <strong>Camera</strong> permission is required for QR code scanning.<br/>
+            <strong>Phone & SMS</strong> permissions are required for USSD payments and payment confirmations.
           </p>
         </div>
       </div>

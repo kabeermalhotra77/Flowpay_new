@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { SetupScreen } from './SetupScreen';
 import { MainScreen } from './MainScreen';
-import { ProcessingScreen } from './ProcessingScreen';
 import { PermissionOnboardingScreen } from './PermissionOnboardingScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { UserProfile, PaymentDetails } from '@/types/payment';
 import { StorageService } from '@/services/storage';
 
-type AppScreen = 'permissions' | 'setup' | 'main' | 'processing' | 'settings';
+type AppScreen = 'permissions' | 'setup' | 'main' | 'settings';
 
 export function FlowPayApp() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('permissions');
@@ -42,7 +41,7 @@ export function FlowPayApp() {
 
   const handleStartPayment = (paymentData: PaymentDetails) => {
     setCurrentPayment(paymentData);
-    setCurrentScreen('processing');
+    // Payment will be handled directly in MainScreen now
   };
 
   const handlePaymentComplete = () => {
@@ -96,18 +95,8 @@ export function FlowPayApp() {
           profile={userProfile}
           onStartPayment={handleStartPayment}
           onShowSettings={handleShowSettings}
-        />
-      ) : (
-        <SetupScreen onSetupComplete={handleSetupComplete} />
-      );
-    
-    case 'processing':
-      return userProfile && currentPayment ? (
-        <ProcessingScreen
-          paymentData={currentPayment}
-          profile={userProfile}
-          onBack={handleBackToMain}
-          onComplete={handlePaymentComplete}
+          currentPayment={currentPayment}
+          onPaymentComplete={handlePaymentComplete}
         />
       ) : (
         <SetupScreen onSetupComplete={handleSetupComplete} />

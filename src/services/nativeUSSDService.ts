@@ -5,10 +5,19 @@ import { FLAGS } from '../constants/flags';
 
 // Native plugin interfaces
 interface USSDPlugin {
-  dialUSSD(options: { ussdCode: string, simSlot?: number }): Promise<void>;
-  getDualSimInfo(): Promise<{ isDualSim: boolean, simCount: number, simInfo: any[] }>;
-  selectSIM(options: { simSlot: number }): Promise<void>;
-  isUSSDSupported(): Promise<{ supported: boolean, phoneType: number }>;
+  dialUSSD(options: { code: string, simSlot?: number }): Promise<{ success: boolean, message: string }>;
+  constructUSSDCode(options: { vpa: string, amount: string }): Promise<{ ussdCode: string, message: string }>;
+  getDualSimInfo(): Promise<{ hasDualSim: boolean, simCount: number, simInfo: any[] }>;
+  isUSSDSupported(): Promise<{ supported: boolean, hasPhonePermission: boolean, hasPhoneStatePermission: boolean }>;
+  requestPermissions(): Promise<{ granted: boolean }>;
+}
+
+interface SMSPlugin {
+  startSMSListener(): Promise<{ success: boolean, message: string }>;
+  stopSMSListener(): Promise<{ success: boolean, message: string }>;
+  isSMSListenerActive(): Promise<{ active: boolean }>;
+  isSMSSupported(): Promise<{ supported: boolean, hasReceivePermission: boolean, hasReadPermission: boolean }>;
+  requestPermissions(): Promise<{ granted: boolean }>;
 }
 
 interface SecureUiPlugin {
@@ -17,22 +26,15 @@ interface SecureUiPlugin {
   setSecureForPin(options: { enabled: boolean }): Promise<void>;
 }
 
-interface AccessibilityPlugin {
-  isAccessibilityServiceEnabled(): Promise<{ enabled: boolean }>;
-  openAccessibilitySettings(): Promise<void>;
-  requestAccessibilityPermission(): Promise<{ message: string }>;
-  getAccessibilityServiceStatus(): Promise<{ enabled: boolean, serviceName: string, message: string }>;
-}
-
 // Get native plugins
 const USSDPlugin = Capacitor.isNativePlatform() ? 
   (Capacitor as any).Plugins.USSDPlugin as USSDPlugin : null;
 
+const SMSPlugin = Capacitor.isNativePlatform() ? 
+  (Capacitor as any).Plugins.SMSPlugin as SMSPlugin : null;
+
 const SecureUi = Capacitor.isNativePlatform() ? 
   (Capacitor as any).Plugins.SecureUi as SecureUiPlugin : null;
-
-const AccessibilityPlugin = Capacitor.isNativePlatform() ? 
-  (Capacitor as any).Plugins.AccessibilityPlugin as AccessibilityPlugin : null;
 
 export class NativeUSSDService {
   private static currentStep = 0;
@@ -253,6 +255,85 @@ export class NativeUSSDService {
     this.selectedBank = null;
     this.onProgress = null;
     await this.disableSecureMode();
+  }
+
+  // New simplified USSD methods
+  static async dialUSSD(ussdCode: string): Promise<boolean> {
+    try {
+      if (USSDPlugin && Capacitor.isNativePlatform()) {
+        const result = await USSDPlugin.dialUSSD({ code: ussdCode });
+        return result.success;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to dial USSD:', error);
+      return false;
+    }
+  }
+
+  static async startSMSListener(): Promise<boolean> {
+    try {
+      if (SMSPlugin && Capacitor.isNativePlatform()) {
+        const result = await SMSPlugin.startSMSListener();
+        return result.success;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to start SMS listener:', error);
+      return false;
+    }
+  }
+
+  static async stopSMSListener(): Promise<boolean> {
+    try {
+      if (SMSPlugin && Capacitor.isNativePlatform()) {
+        const result = await SMSPlugin.stopSMSListener();
+        return result.success;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to stop SMS listener:', error);
+      return false;
+    }
+  }
+
+  static async isSMSListenerActive(): Promise<boolean> {
+    try {
+      if (SMSPlugin && Capacitor.isNativePlatform()) {
+        const result = await SMSPlugin.isSMSListenerActive();
+        return result.active;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check SMS listener status:', error);
+      return false;
+    }
+  }
+
+  static async requestSMSPermissions(): Promise<boolean> {
+    try {
+      if (SMSPlugin && Capacitor.isNativePlatform()) {
+        const result = await SMSPlugin.requestPermissions();
+        return result.granted;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to request SMS permissions:', error);
+      return false;
+    }
+  }
+
+  static async requestUSSDPermissions(): Promise<boolean> {
+    try {
+      if (USSDPlugin && Capacitor.isNativePlatform()) {
+        const result = await USSDPlugin.requestPermissions();
+        return result.granted;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to request USSD permissions:', error);
+      return false;
+    }
   }
 
   // Security methods

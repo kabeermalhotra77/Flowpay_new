@@ -10,7 +10,6 @@ import {
   Shield, 
   Camera, 
   Phone, 
-  Accessibility, 
   Info, 
   Database,
   Smartphone,
@@ -40,21 +39,18 @@ interface AppInfo {
   platform: string;
   isNative: boolean;
   ussdSupported: boolean;
-  accessibilityEnabled: boolean;
 }
 
 export function SettingsScreen({ profile, onBack, onResetApp }: SettingsScreenProps) {
   const [permissions, setPermissions] = useState<PermissionStatus>({
     camera: false,
-    phone: false,
-    accessibility: false
+    phone: false
   });
   const [appInfo, setAppInfo] = useState<AppInfo>({
     version: '1.0.0',
     platform: 'web',
     isNative: false,
-    ussdSupported: false,
-    accessibilityEnabled: false
+    ussdSupported: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [simulationMode, setSimulationMode] = useState(FLAGS.USSD_SIMULATED);
@@ -73,14 +69,12 @@ export function SettingsScreen({ profile, onBack, onResetApp }: SettingsScreenPr
       // Load app information
       const isNative = Capacitor.isNativePlatform();
       const ussdSupported = await NativeUSSDService.isUSSDSupported();
-      const accessibilityEnabled = await NativeUSSDService.isAccessibilityEnabled();
 
       setAppInfo({
         version: '1.0.0-beta',
         platform: isNative ? Capacitor.getPlatform() : 'web',
         isNative,
-        ussdSupported,
-        accessibilityEnabled
+        ussdSupported
       });
     } catch (error) {
       console.error('Error loading settings data:', error);
@@ -99,9 +93,6 @@ export function SettingsScreen({ profile, onBack, onResetApp }: SettingsScreenPr
           break;
         case 'phone':
           granted = await PermissionService.requestPhonePermission();
-          break;
-        case 'accessibility':
-          granted = await PermissionService.requestAccessibilityPermission();
           break;
       }
       
@@ -243,10 +234,6 @@ export function SettingsScreen({ profile, onBack, onResetApp }: SettingsScreenPr
                 <span className="text-sm text-muted-foreground">USSD Support:</span>
                 {getStatusBadge(appInfo.ussdSupported, appInfo.ussdSupported ? 'Available' : 'Unavailable')}
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Accessibility:</span>
-                {getStatusBadge(appInfo.accessibilityEnabled, appInfo.accessibilityEnabled ? 'Enabled' : 'Disabled')}
-              </div>
             </CardContent>
           </Card>
 
@@ -310,30 +297,7 @@ export function SettingsScreen({ profile, onBack, onResetApp }: SettingsScreenPr
                 </div>
               </div>
 
-              <Separator />
 
-              {/* Accessibility Permission */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Accessibility className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Accessibility Service</p>
-                    <p className="text-xs text-muted-foreground">Optional for USSD automation</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(permissions.accessibility, permissions.accessibility ? 'Enabled' : 'Disabled')}
-                  {!permissions.accessibility && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => requestPermission('accessibility')}
-                    >
-                      Enable
-                    </Button>
-                  )}
-                </div>
-              </div>
             </CardContent>
           </Card>
 

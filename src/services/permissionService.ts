@@ -8,35 +8,24 @@ interface USSDPlugin {
   requestPermissions(): Promise<{ granted: boolean }>;
 }
 
-interface AccessibilityPlugin {
-  isAccessibilityServiceEnabled(): Promise<{ enabled: boolean }>;
-  requestAccessibilityPermission(): Promise<{ message: string }>;
-  openAccessibilitySettings(): Promise<void>;
-}
-
 // Get native plugins
 const USSDPlugin = Capacitor.isNativePlatform() ? 
   (Capacitor as any).Plugins.USSDPlugin as USSDPlugin : null;
 
-const AccessibilityPlugin = Capacitor.isNativePlatform() ? 
-  (Capacitor as any).Plugins.AccessibilityPlugin as AccessibilityPlugin : null;
-
 export interface PermissionStatus {
   camera: boolean;
   phone: boolean;
-  accessibility: boolean;
 }
 
 export class PermissionService {
   
   static async checkAllPermissions(): Promise<PermissionStatus> {
-    const [camera, phone, accessibility] = await Promise.all([
+    const [camera, phone] = await Promise.all([
       this.checkCameraPermission(),
-      this.checkPhonePermission(),
-      this.checkAccessibilityPermission()
+      this.checkPhonePermission()
     ]);
 
-    return { camera, phone, accessibility };
+    return { camera, phone };
   }
 
   static async checkCameraPermission(): Promise<boolean> {
@@ -115,57 +104,17 @@ export class PermissionService {
     }
   }
 
-  static async checkAccessibilityPermission(): Promise<boolean> {
-    if (!Capacitor.isNativePlatform()) {
-      return true; // Not needed for web simulation
-    }
 
-    try {
-      if (AccessibilityPlugin) {
-        const result = await AccessibilityPlugin.isAccessibilityServiceEnabled();
-        return result.enabled;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error checking accessibility permission:', error);
-      return false;
-    }
-  }
-
-  static async requestAccessibilityPermission(): Promise<boolean> {
-    if (!Capacitor.isNativePlatform()) {
-      toast.info('Accessibility not needed for web simulation');
-      return true; // Not needed for web simulation
-    }
-
-    try {
-      if (AccessibilityPlugin) {
-        const result = await AccessibilityPlugin.requestAccessibilityPermission();
-        toast.info(result.message);
-        
-        // Open accessibility settings
-        await AccessibilityPlugin.openAccessibilitySettings();
-        return false; // User needs to manually enable in settings
-      }
-      return false;
-    } catch (error) {
-      console.error('Error requesting accessibility permission:', error);
-      toast.error('Failed to request accessibility permission');
-      return false;
-    }
-  }
 
   static async requestAllPermissions(): Promise<PermissionStatus> {
     const results = await Promise.all([
       this.requestCameraPermission(),
-      this.requestPhonePermission(),
-      this.requestAccessibilityPermission()
+      this.requestPhonePermission()
     ]);
 
     return {
       camera: results[0],
-      phone: results[1],
-      accessibility: results[2]
+      phone: results[1]
     };
   }
 
@@ -178,13 +127,8 @@ export class PermissionService {
     }
 
     if (!permissions.phone && Capacitor.isNativePlatform()) {
-      toast.error('Phone permission required for USSD payments');
+      toast.error('Phone permission required for USSD payments and SMS confirmations');
       return false;
-    }
-
-    if (!permissions.accessibility && Capacitor.isNativePlatform()) {
-      toast.warning('Accessibility service recommended for automatic USSD handling');
-      // Don't block payment, just warn
     }
 
     return true;
@@ -198,11 +142,7 @@ export class PermissionService {
     }
     
     if (!status.phone && Capacitor.isNativePlatform()) {
-      messages.push('Phone permission needed for USSD payments');
-    }
-    
-    if (!status.accessibility && Capacitor.isNativePlatform()) {
-      messages.push('Accessibility service recommended for automation');
+      messages.push('Phone permission needed for USSD payments and SMS confirmations');
     }
 
     if (messages.length === 0) {
